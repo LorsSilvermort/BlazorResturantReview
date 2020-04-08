@@ -1,0 +1,35 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>FredagsLunch</title>
+    <base href="/" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/site.css" rel="stylesheet" />
+    <script src="_content/MatBlazor/dist/matBlazor.js"></script>
+    <link href="_content/MatBlazor/dist/matBlazor.css" rel="stylesheet" />
+    <script src="/ServiceWorkerRegister.js"></script>
+    <link href="/manifest.json" rel="manifest"/>
+</head>
+
+<body>
+    <app>
+        <div class="start-app center-content">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    </app>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="geolocation.js"></script>
+</body>
+
+</html>

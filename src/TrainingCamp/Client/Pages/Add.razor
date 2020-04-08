@@ -1,0 +1,141 @@
+﻿@page "/add"
+@inject AddState AddState
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@inject IJSRuntime IJSRuntime
+
+
+@using TrainingCamp.Shared.Model;
+@using TrainingCamp.Shared.Enums;
+@using TrainingCamp.Client.Components;
+@using TrainingCamp.Client.SessionState
+@using TrainingCamp.Shared.Extensions;
+@using System.IO;
+
+
+<MatCard Class="form-card center-content m-2-top">
+    <div class="p-2">
+        <h4>Lägg till resturang</h4>
+    </div>
+    <MatDivider Class="m-2-bot m-2-top" Padded="true"></MatDivider>
+    <EditForm Model="_resturant" OnValidSubmit="OnSuccessSubmit">
+        <DataAnnotationsValidator />
+        <div class="p-2">
+            <MatTextField Label="Namn"
+                          Class="form-container"
+                          Disabled="AddState.IsPending"
+                          @bind-Value="_resturant.Name"></MatTextField>
+        </div>
+        <div class="p-2">
+            <MatTextField Label="Telefon"
+                          Class="form-container"
+                          Disabled="AddState.IsPending"
+                          @bind-Value="_resturant.Phone"></MatTextField>
+        </div>
+        <div class="p-2" id="locationBtn">
+            
+            <div class="custom-col-3">
+
+                <MatIconButton OnClick="GetLocation" Disabled="@_isLocation" Icon="location_searching"></MatIconButton>
+
+            </div>
+            <div class="custom-col-9">
+                <p class="paragraf m-6-top">@_locationMessage</p>
+            </div>
+               
+        </div>
+        <MatTooltip TargetId="locationBtn" Tooltip="Hämta din plats" Wrap="true" Position="@MatTooltipPosition.Right">
+        </MatTooltip>
+        <div class="p-2">
+            <MatFileUpload OnChange="AddImage" class="form-container" Label="Lägg till bild"></MatFileUpload>
+            @if (_imgThumbnail != null)
+            {
+                <div class="p-2">
+                    <img class="img-thumbnail img-preview" src="@_imgThumbnail" />
+                </div>
+            }
+        </div>
+        <div class="p-2">
+            <MatButton Raised="true" Disabled="AddState.IsPending" Class="form-container">Lägg till</MatButton>
+            <MatProgressBar Indeterminate="AddState.IsPending"></MatProgressBar>
+        </div>
+        <ValidationSummary />
+    </EditForm>
+</MatCard>
+
+<ModalComponent DisplayDialog="@AddState.DisplayDialog"
+                Message="@AddState.Message"
+                Title="@AddState.Title"
+                OnClick="@(() => AddState.DisplayDialog = false)">
+</ModalComponent>
+
+
+@code
+{
+    private Resturant _resturant = new Resturant();
+    private string _imgThumbnail;
+    private bool _isLocation = false;
+    private string _locationMessage = "Jag är på resturangen";
+
+    private async Task OnSuccessSubmit()
+    {
+        AddState.SetState(CurrentState.Pending);
+        try
+        {
+            await HttpClient.PostJsonAsync("Resturant", _resturant);
+            AddState.SetState(CurrentState.Success);
+            NavigationManager.NavigateTo("/all");
+        }
+        catch (HttpRequestException)
+        {
+            AddState.SetDefaultMessage();
+            AddState.SetState(CurrentState.Error);
+        }
+        catch (TaskCanceledException)
+        {
+            AddState.SetDefaultMessage();
+            AddState.SetState(CurrentState.Error);
+        }catch(Exception e)
+        {
+            Console.WriteLine($"ExceptionStacktrace: {e.StackTrace ?? ""} ExceptionMessage: {e.Message ?? ""}");
+            AddState.Message = "Kan inte skapa resturang, kan inte ansluta till servern";
+            AddState.Title = "Varning";
+            AddState.SetState(CurrentState.Error);
+        }
+    }
+
+    private async Task AddImage(IMatFileUploadEntry[] files)
+    {
+        var file = files.FirstOrDefault();
+        if (file.Name.IsImage())
+        {
+            var ms = new MemoryStream();
+            await file.WriteToStreamAsync(ms);
+            var img = Convert.ToBase64String(ms.ToArray());
+            _resturant.Image = img.GetBase64Prefix(file.Name);
+            _imgThumbnail = _resturant.Image;
+        }
+        else
+        {
+            AddState.Message = "Du måste välja en bild";
+            AddState.Title = "Varning";
+            AddState.SetState(CurrentState.Error);
+        }
+    }
+
+    private async Task GetLocation()
+    {
+        await IJSRuntime.InvokeVoidAsync("getLocation", DotNetObjectReference.Create(this));
+    }
+
+    [JSInvokable]
+    public void SetCoordinates(string longitude, string latitude)
+    {
+        _locationMessage = "Platsen har hämtats";
+        _isLocation = true;
+        _resturant.Longitude = longitude;
+        _resturant.Latitude = latitude;
+        StateHasChanged();
+    }
+
+}

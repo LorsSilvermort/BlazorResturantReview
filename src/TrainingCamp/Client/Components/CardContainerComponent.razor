@@ -1,0 +1,167 @@
+﻿
+@using MatBlazor
+@using TrainingCamp.Client.Components
+@using TrainingCamp.Shared.ViewModel
+@using TrainingCamp.Shared.Enums
+@using TrainingCamp.Shared.Extensions
+@using TrainingCamp.Client.SessionState
+@inject PresentationState PresentationState
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+
+@implements IDisposable
+
+<div class="custom-progress-bar">
+    <MatProgressBar Indeterminate="PresentationState.IsPending"></MatProgressBar>
+</div>
+@if (_resturants != null)
+{
+    <div class="form-card center-content m-1-top">
+        <h4 class="headline">@(Headline ?? "")</h4>
+    </div>
+    @foreach (var item in _resturants)
+    {
+
+        <PresentationComponent ResturantViewModel="@item"
+                               IsReadOnly="@IsTrending">
+        </PresentationComponent>
+    }
+    @if (IsPagination)
+    {
+        <div class="form-card center-content m-1-top">
+            <div class="center-items">
+                <MatButton Disabled="@PresentationState.IsPending" Outlined="true" OnClick="FetchResturantsPagination">Nästa 5</MatButton>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="form-card center-content">
+        @if (_defaultMessage != null)
+        {
+            <p class="paragraf m-2-top">@(_defaultMessage) lägg till en resturang <a href="add">här</a></p>
+        }
+    </div>
+}
+
+<ModalComponent DisplayDialog="@PresentationState.DisplayDialog"
+                Message="@PresentationState.Message"
+                Title="@PresentationState.Title"
+                OnClick="OnModalClick">
+</ModalComponent>
+
+@code{
+
+    [Parameter]
+    public bool IsTrending { get; set; }
+    [Parameter]
+    public string Route { get; set; }
+    [Parameter]
+    public bool IsPagination { get; set; }
+    [Parameter]
+    public string Headline { get; set; }
+
+    private int _numberOfPages = 5;
+    private int _page = 0;
+
+    private List<ResturantViewModel> _resturants;
+    private string _defaultMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        PresentationState.StateChanged += StateChanged;
+        if (IsPagination)
+        {
+            _resturants = new List<ResturantViewModel>();
+            await FetchResturantsPagination();
+        }
+        else
+        {
+            await FetchResturants();
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task FetchResturants()
+    {
+
+        try
+        {
+            PresentationState.SetState(CurrentState.Pending);
+            _resturants = await HttpClient.GetJsonAsync<List<ResturantViewModel>>(Route);
+            PresentationState.SetState(CurrentState.Success);
+        }
+        catch (HttpRequestException)
+        {
+            _defaultMessage = "Det finns inga resturanger, ";
+            PresentationState.SetState(CurrentState.Start);
+        }
+        catch (TaskCanceledException)
+        {
+            _defaultMessage = "Något har gått fel försök igen eller ";
+            PresentationState.SetState(CurrentState.Start);
+        }
+        catch (Exception)
+        {
+            PresentationState.Message = "Kan inte hämta, internet saknas";
+            PresentationState.Title = "Varning";
+            PresentationState.SetState(CurrentState.Error);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task FetchResturantsPagination()
+    {
+        try
+        {
+            IsPagination = false;
+            PresentationState.SetState(CurrentState.Pending);
+            var items = await HttpClient.GetJsonAsync<List<ResturantViewModel>>($@"{Route}\{_numberOfPages.ToString()}\{_page.ToString()}");
+            IsPagination = items.Count < _numberOfPages ? false : true;
+            _resturants.AddRange(items);
+            _page++;
+            PresentationState.SetState(CurrentState.Success);
+        }
+        catch (HttpRequestException)
+        {
+            _defaultMessage = "Det finns inga resturanger, ";
+            PresentationState.SetState(CurrentState.Start);
+        }
+        catch (TaskCanceledException)
+        {
+            _defaultMessage = "Något har gått fel försök igen eller ";
+            PresentationState.SetState(CurrentState.Start);
+        }
+        catch (Exception)
+        {
+            PresentationState.Message = "Kan inte hämta, internet saknas";
+            PresentationState.Title = "Varning";
+            PresentationState.SetState(CurrentState.Error);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void StateChanged(object sender, EventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    void IDisposable.Dispose()
+    {
+        PresentationState.StateChanged -= StateChanged;
+    }
+
+    private void OnModalClick()
+    {
+        PresentationState.SetState(CurrentState.Start);
+    }
+
+}

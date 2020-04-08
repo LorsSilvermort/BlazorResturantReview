@@ -1,0 +1,20 @@
+{
+  "short_name": "FL",
+  "name": "FredagsLunch",
+  "background_color": "#fffdfb",
+  "theme_color": "#706f6e",
+  "start_url": "/",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "/default-icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/default-icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

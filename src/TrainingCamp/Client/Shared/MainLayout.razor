@@ -1,0 +1,78 @@
+﻿@inherits LayoutComponentBase
+@using MatBlazor
+    <MatThemeProvider Theme="@theme">
+        <MatAppBarContainer>
+            <MatAppBar Fixed="true">
+                <MatAppBarRow>
+                    <MatAppBarSection>
+                        <MatIconButton OnClick="ButtonClicked" Icon="menu"></MatIconButton>
+                        <MatAppBarTitle>FredagsLunch</MatAppBarTitle>
+                    </MatAppBarSection>
+                    <MatAppBarSection Align="@MatAppBarSectionAlign.End">
+                    </MatAppBarSection>
+                </MatAppBarRow>
+            </MatAppBar>
+            <MatAppBarContent>
+                <MatDrawerContainer>
+                    <MatDrawer @bind-Opened="@Opened" Mode="@MatDrawerMode.Modal">
+                        <MatList>
+                            <MatListItem @onclick="SetBool" Href="">
+                                <MatIcon Icon="home"></MatIcon>
+                                <span class="m-1 text-right">Hem</span>
+                            </MatListItem>
+                            <MatListDivider></MatListDivider>
+                            <MatListItem @onclick="SetBool" Href="add">
+                                <MatIcon Icon="add"></MatIcon>
+                                <span class="m-1 text-right">Skapa Resturang</span>
+                            </MatListItem>
+                            <MatListDivider></MatListDivider>
+                            <MatListItem @onclick="SetBool" Href="/true">
+                                <MatIcon Icon="whatshot"></MatIcon>
+                                <span class="m-1 text-right">Se topplista</span>
+                            </MatListItem>
+                            <MatListDivider></MatListDivider>
+                            <MatListItem @onclick="SetBool" Href="/all">
+                                <MatIcon Icon="format_list_bulleted"></MatIcon>
+                                <span class="m-1 text-right">Se alla</span>
+                            </MatListItem>
+                            <MatListDivider></MatListDivider>
+                        </MatList>
+                    </MatDrawer>
+                    <MatDrawerContent Class="color-scheme">
+                        @*<div class="container-fluid" style=" width: 100vw;">
+                            @Body
+                        </div>*@
+                        <div class="full-width">
+                            @Body
+                        </div>
+                    </MatDrawerContent>
+                </MatDrawerContainer>
+            </MatAppBarContent>
+        </MatAppBarContainer>
+    </MatThemeProvider>
+
+
+
+@code
+{
+    bool Opened = false;
+
+    void ButtonClicked()
+    {
+        Opened = !Opened;
+    }
+
+    public void SetBool()
+    {
+        Opened = false;
+    }
+
+    public MatTheme theme = new MatTheme()
+    {
+        Primary = MatThemeColors.Grey._900.Value,
+        Secondary = MatThemeColors.Red._500.Value,
+        Background = MatThemeColors.Grey._600.Value
+    };
+
+}
+

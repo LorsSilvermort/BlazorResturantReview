@@ -1,0 +1,22 @@
+﻿<MatDialog @bind-IsOpen="@DisplayDialog">
+    <MatDialogTitle>@Title</MatDialogTitle>
+    <MatDialogContent>
+        <p>@Message</p>
+    </MatDialogContent>
+    <MatDialogActions>
+        <MatButton OnClick="@OnClick">Jag Förstår</MatButton>
+    </MatDialogActions>
+</MatDialog>
+
+@code {
+    [Parameter]
+    public bool DisplayDialog { get; set; }
+    [Parameter]
+    public string Title { get; set; }
+    [Parameter]
+    public string Message { get; set; }
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+
+}

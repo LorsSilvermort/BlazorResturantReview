@@ -1,0 +1,255 @@
+﻿@using TrainingCamp.Shared.ViewModel
+@using TrainingCamp.Shared.Model
+@using TrainingCamp.Shared.Enums
+@using TrainingCamp.Client.SessionState
+@using System.IO
+@using TrainingCamp.Shared.Extensions
+
+@inject PresentationState PresentationState
+@inject HttpClient HttpClient 
+@inject NavigationManager NavigationManager;  
+
+<style>
+    .mat-accordion .mat-expansion-panel.mat-expansion-panel--expanded > .mat-expansion-panel__content
+    {
+        max-height: 5000px !important;
+    }
+    .mdc-card__primary-action::before, .mdc-card__primary-action::after {
+        background-color: white;
+    }
+
+
+    .mdc-card__primary-action {
+        text-align: left;
+    }
+
+    .mat-accordion .mat-expansion-panel__content {
+        padding: 0;
+        padding-top: 1px;
+    }
+    .mdc-dialog__surface
+    {
+        width: 350px !important;
+    }
+</style>
+<div class="p-1">
+    <MatCard class="form-card center-content">
+        <MatCardContent>
+            <div class="p-1">
+                <MatChip Class="md-chip" Label="@(ResturantViewModel.AverageRating != null ? $"Medelbetyg: {ResturantViewModel.AverageRating.GetValueOrDefault().ToString("#.##")}" : "Medelbetyg: -")"></MatChip>
+            </div>
+            <div class="p-1">
+                <MatChip Class="md-chip" Label="@(ResturantViewModel.LastVisit != null ? $"Senast besökt: {ResturantViewModel.LastVisit.GetValueOrDefault().ToShortDateString()}" : "Senaste besökt: -")"></MatChip>
+            </div>
+            <MatCardMedia Wide="true" ImageUrl="@(ResturantViewModel.Resturant.Image != null ? ResturantViewModel.Resturant.Image :  "image/no-image.png")" />
+            <div class="p-1">
+                <div class="custom-col-9">
+                    <h4 class="headline m-2">@ResturantViewModel.Resturant.Name.ToFirstCapital()</h4>
+                </div>
+                <div class="custom-col-3">
+                    @if (!String.IsNullOrWhiteSpace(ResturantViewModel.Resturant.Phone))
+                    {
+                        <a href="tel:@ResturantViewModel.Resturant.Phone" target="_blank">
+                            <MatIconButton Icon="phone"></MatIconButton>
+                        </a>
+                    }
+                    @if (!String.IsNullOrWhiteSpace(ResturantViewModel.Resturant.Latitude) && !String.IsNullOrWhiteSpace(ResturantViewModel.Resturant.Longitude))
+                    { 
+                        <a href=@($"https://www.google.com/maps/search/?api=1&query={ResturantViewModel.Resturant.Latitude ?? ""},{ResturantViewModel.Resturant.Longitude ?? ""}") target="_blank">
+                            <MatIconButton Icon="location_on"></MatIconButton>
+                        </a>
+                    }
+                </div>
+            </div>
+            <MatDivider Padded="true" Class="m-1-top"></MatDivider>
+            <div class="p-1 m-2">
+                @if(!IsReadOnly)
+                {
+                <div class="custom-col-9"><p></p></div>
+                <div class="custom-col-3 p-2">
+                    <MatTooltip Tooltip="Lägg till en recension" Wrap="true" Position="@MatTooltipPosition.Left">
+
+                        <MatFAB Class="m-4-left" Icon="@MatIconNames.Add" Mini="true" OnClick="AddReview"></MatFAB>
+                    </MatTooltip>
+                </div>
+                }
+            </div>
+            @if (ResturantViewModel.Resturant.Reviews.Any())
+            {
+                <MatButton class="m-1 btn-md" OnClick="OpenExpansionPanel">Se Recensioner</MatButton>
+                <MatAccordion>
+                    <MatExpansionPanel @bind-Expanded="@_panelOpenState" Style="visibility: hidden;">
+                        <MatExpansionPanelDetails Style="visibility: visible">
+                           
+                            @foreach (var item in ResturantViewModel.Resturant.Reviews)
+                            {
+                            <div class="p-1 subitem-height">
+                                <div class="custom-col-4">
+                                    <img class="img-thumbnail img-subitem" src="@(item.Image ?? "image/no-image.png")" />
+                                </div>
+                                <div class="custom-col-8">
+                                    <p class="overline m-0 p-0">@item.Date.ToShortDateString() </p>
+                                    <p class="overline m-0 p-0">@item.Grade/5</p>
+                                    <p class="paragraf-subitem m-0 p-0">@item.Comment.ToFirstCapital()</p>
+                                    
+                                </div>
+                                
+                            </div>
+                            <MatDivider Class="m-2-bot"  Padded="true"></MatDivider>
+
+                            }
+
+                        </MatExpansionPanelDetails>
+                    </MatExpansionPanel>
+                </MatAccordion>
+            }
+        </MatCardContent>
+    </MatCard>
+</div>
+<div class="center-content">
+    <MatDialog @bind-IsOpen="@_displayReviewForm">
+        <MatDialogTitle>Lägg till recension <MatIconButton Class="exit-btn" Icon="close" OnClick="@(() => _displayReviewForm = false)"></MatIconButton></MatDialogTitle>
+        <EditForm Model="_review" OnValidSubmit="OnSuccessSubmit">
+            <DataAnnotationsValidator />
+            <MatDivider></MatDivider>
+            <div class="p-2">
+                <MatDatePicker @bind-Value="_review.Date"
+                               AllowInput="false"
+                               Maximum="DateTime.Now.ToLocalTime()"
+                               Class="form-container"
+                               Disabled="@PresentationState.IsPending"
+                               Format="MMMM dd, yyyy"
+                               Label="Datum"
+                               DisableMobile="true"></MatDatePicker>
+            </div>
+            <div class="p-2">
+                <MatNumericUpDownField Label="Betyg"
+                                       TValue="int"
+                                       @bind-Value="@_review.Grade"
+                                       Class="form-container"
+                                       Minimum="1"
+                                       Maximum="5"></MatNumericUpDownField>
+            </div>
+            <div class="p-2">
+                <MatTextField Label="Kommentar"
+                              Class="form-container"
+                              TextArea="true"
+                              Disabled="@PresentationState.IsPending"
+                              @bind-Value="_review.Comment"></MatTextField>
+            </div>
+            <div class="p-2">
+                <MatFileUpload OnChange="AddImage" class="form-container" Label="Lägg till bild"></MatFileUpload>
+                @if (_imgThumbnail != null)
+                {
+                    <div class="p-2">
+                        <img class="img-thumbnail img-preview" src="@_imgThumbnail" />
+                    </div>
+                }
+            </div>
+            <div class="p-2">
+                <MatButton Raised="true" Disabled="@PresentationState.IsPending" Class="form-container">Lägg till</MatButton>
+            </div>
+            <ValidationSummary />
+        </EditForm>
+    </MatDialog>
+</div>
+
+
+@code {
+    [Parameter]
+    public ResturantViewModel ResturantViewModel { get; set; }
+    [Parameter]
+    public bool IsReadOnly { get; set; }
+
+    private bool _displayReviewForm;
+    private Review _review = new Review();
+    private string _imgThumbnail;
+    private bool _panelOpenState;
+
+    private void OpenExpansionPanel()
+    {
+        _panelOpenState = !_panelOpenState;
+    }
+
+    private void AddReview()
+    {
+        _review = new Review();
+        _displayReviewForm = true;
+        StateHasChanged();
+    }
+
+    private async Task OnSuccessSubmit()
+    {
+        _displayReviewForm = false;
+        _imgThumbnail = null;
+        StateHasChanged();
+        _review.ResturantId = ResturantViewModel.Resturant.ResturantId;
+        PresentationState.SetState(CurrentState.Pending);
+
+        try
+        {
+            _review.Date = _review.Date.ToLocalTime();
+            await HttpClient.PostJsonAsync("Review", _review);
+            PresentationState.SetState(CurrentState.Success);
+            ResturantViewModel.Resturant.Reviews.Add(_review);
+            ResturantViewModel.AverageRating = GetAverageRating(ResturantViewModel.Resturant.Reviews);
+            ResturantViewModel.LastVisit = GetLastVisit(ResturantViewModel.Resturant.Reviews);
+            StateHasChanged();
+        }
+        catch (HttpRequestException)
+        {
+            PresentationState.SetDefaultMessage();
+            PresentationState.SetState(CurrentState.Error);
+        }
+        catch (TaskCanceledException)
+        {
+            PresentationState.SetDefaultMessage();
+            PresentationState.SetState(CurrentState.Error);
+        }
+        catch (Exception)
+        {
+            PresentationState.Message = "Kan inte skapa resturang, kan inte ansluta till servern";
+            PresentationState.Title = "Varning";
+            PresentationState.SetState(CurrentState.Error);
+        }
+    }
+
+    private decimal? GetAverageRating(List<Review> reviews)
+    {
+        if (reviews == null || !reviews.Any())
+            return null;
+
+        var ratingList = new List<Decimal>();
+        reviews.ForEach(r => ratingList.Add(r.Grade));
+        var avg = ratingList.Average();
+        return avg;
+    }
+
+    private DateTime? GetLastVisit(List<Review> reviews)
+    {
+        if (reviews == null || !reviews.Any())
+            return null;
+
+        var lastVisit = reviews.OrderByDescending(r => r.Date).FirstOrDefault();
+        return lastVisit.Date;
+    }
+
+    private async Task AddImage(IMatFileUploadEntry[] files)
+    {
+        var file = files.FirstOrDefault();
+        if (file.Name.IsImage())
+        {
+            var ms = new MemoryStream();
+            await file.WriteToStreamAsync(ms);
+            var img = Convert.ToBase64String(ms.ToArray());
+            _review.Image = img.GetBase64Prefix(file.Name);
+            _imgThumbnail = _review.Image;
+        }
+        else
+        {
+            PresentationState.Message = "Du välja en bild";
+            PresentationState.Title = "Varning";
+            PresentationState.SetState(CurrentState.Error);
+        }
+    }
+}

@@ -1,0 +1,15 @@
+﻿@page "/{IsTrending:bool}"
+@using TrainingCamp.Client.Components
+
+<CardContainerComponent Headline="Topplista sorterad på betyg och datum"
+                        Route="@_route"
+                        IsTrending="@IsTrending">
+</CardContainerComponent>
+
+
+@code {
+
+    [Parameter]
+    public bool IsTrending { get; set; }
+    private string _route = @"Resturant\trending";
+}
