@@ -98,7 +98,7 @@ self.addEventListener(networkFetchEvent, event => {
     event.respondWith(
         caches.match(event.request)
             .then(response => {
-                if (response && (!navigator.onLine || !event.request.url.startsWith('https://localhost:5001/Resturant/'))) {
+                if (response && !navigator.onLine) {
                     return response;
                 }
                 return fetch(event.request)
