@@ -1,4 +1,4 @@
-FredagsLunch/ResturantReviews
+# FredagsLunch/ResturantReviews
 Application used to give reviews to resturants
 
 
