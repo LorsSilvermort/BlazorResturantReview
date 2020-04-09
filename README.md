@@ -13,4 +13,4 @@ Application used to give reviews to resturants
 - DotNet Core, Backend
 
 ### Author
-Samuel Lindkvist
+LorsSilvermort 
